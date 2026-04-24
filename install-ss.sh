@@ -20,7 +20,7 @@ if ! [[ "$PORT" =~ ^[0-9]+$ ]] || [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; th
 fi
 
 apt update
-apt install -y shadowsocks-libev qrencode curl openssl
+apt install -y shadowsocks-libev qrencode curl openssl python3
 
 mkdir -p /etc/shadowsocks-libev
 
@@ -39,15 +39,17 @@ EOF
 systemctl enable shadowsocks-libev
 systemctl restart shadowsocks-libev
 
-# 开启 BBR
 grep -q '^net.core.default_qdisc=fq' /etc/sysctl.conf || echo 'net.core.default_qdisc=fq' >> /etc/sysctl.conf
 grep -q '^net.ipv4.tcp_congestion_control=bbr' /etc/sysctl.conf || echo 'net.ipv4.tcp_congestion_control=bbr' >> /etc/sysctl.conf
 sysctl -p >/dev/null
 
 IP=$(curl -4 -s ifconfig.me || hostname -I | awk '{print $1}')
 
-SS_BASE64=$(echo -n "${METHOD}:${PASSWORD}@${IP}:${PORT}" | base64 -w 0)
-SS_LINK="ss://${SS_BASE64}#${NODE_NAME}"
+USERINFO_BASE64=$(echo -n "${METHOD}:${PASSWORD}" | base64 -w 0)
+NODE_NAME_ENCODED=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''${NODE_NAME}'''))")
+
+SS_LINK="ss://${USERINFO_BASE64}@${IP}:${PORT}#${NODE_NAME_ENCODED}"
+CLASH_NODE="- {name: '${NODE_NAME}', type: ss, server: ${IP}, port: ${PORT}, cipher: ${METHOD}, password: '${PASSWORD}', udp: true}"
 
 echo
 echo "====== Shadowsocks 安装完成 ======"
@@ -62,6 +64,9 @@ sysctl net.ipv4.tcp_congestion_control
 echo
 echo "SS 链接:"
 echo "${SS_LINK}"
+echo
+echo "Clash 单行节点:"
+echo "${CLASH_NODE}"
 echo
 echo "二维码:"
 qrencode -t ANSIUTF8 "${SS_LINK}"
