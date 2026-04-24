@@ -5,4 +5,4 @@
 ## 一键安装
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/rainbowgag/ss/refs/heads/main/nano%20install-ss.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/rainbowgag/ss/refs/heads/main/install-ss.sh)
