@@ -30,7 +30,7 @@ show_link() {
   METHOD=$(grep '"method"' "$CONFIG" | cut -d '"' -f4)
   NODE_NAME=$(cat "$NAME_FILE" 2>/dev/null || echo "$DEFAULT_NAME")
 
-  USERINFO_BASE64=$(echo -n "${METHOD}:${PASSWORD}" | base64 -w 0)
+  USERINFO_BASE64=$(echo -n "${METHOD}:${PASSWORD}" | base64 -w 0 | tr -d '=')
   NODE_NAME_ENCODED=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''${NODE_NAME}'''))")
 
   SS_LINK="ss://${USERINFO_BASE64}@${IP}:${PORT}#${NODE_NAME_ENCODED}"
@@ -50,6 +50,9 @@ show_link() {
   echo "Clash 单行节点:"
   echo "${CLASH_NODE}"
   echo
+  echo "二维码:"
+  printf '%s' "$SS_LINK" | qrencode -t ANSIUTF8
+  echo
 }
 
 install_ss() {
@@ -62,7 +65,7 @@ install_ss() {
   PORT=${PORT:-$DEFAULT_PORT}
 
   if ! [[ "$PORT" =~ ^[0-9]+$ ]] || [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
-    echo "端口无效，请输入 1-65535 之间的数字"
+    echo "端口无效"
     exit 1
   fi
 
@@ -93,11 +96,6 @@ EOF
   enable_bbr
 
   show_link
-
-  echo "二维码:"
-  SS_LINK=$(bash "$0" sslink | awk '/^ss:\/\// {print $0}')
-  qrencode -t ANSIUTF8 "$SS_LINK"
-  echo
 }
 
 delete_ss() {
@@ -107,16 +105,15 @@ delete_ss() {
   rm -f "$CONFIG"
   rm -f "$NAME_FILE"
 
-  echo "SS 节点已删除。"
-  echo "注意：软件包 shadowsocks-libev 未卸载，如需卸载请执行："
-  echo "apt remove -y shadowsocks-libev"
+  echo "节点已删除"
+  echo "如需卸载软件：apt remove -y shadowsocks-libev"
 }
 
 case "$1" in
   sslink)
     show_link
     ;;
-  delete|uninstall|remove)
+  delete|remove|uninstall)
     delete_ss
     ;;
   *)
